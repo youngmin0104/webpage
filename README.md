@@ -1,1 +1,351 @@
 # webpage
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>중고거래 플랫폼</title>
+  <style>
+    body { font-family: Arial; margin: 2em; background: #f9f9f9; }
+    h1, h2, h3 { color: #333; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 2em; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 2em; }
+    .input-group { margin-bottom: 1em; }
+    label { display: block; margin-bottom: 0.5em; }
+    input, textarea { width: 100%; padding: 0.5em; }
+    button { padding: 0.5em 1em; background: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 0.5em; }
+    button:hover { background: #0056b3; }
+    .product-item { border: 1px solid #ddd; padding: 1em; border-radius: 5px; margin-bottom: 1em; background: #fafafa; }
+    .top-buttons { text-align: right; margin-bottom: 1em; }
+    .report-button { background: #dc3545; }
+    .report-button:hover { background: #c82333; }
+    .delete-button { background: #6c757d; }
+    .delete-button:hover { background: #5a6268; }
+  </style>
+</head>
+<body>
+  <div class="top-buttons">
+    <button onclick="showRegister(); clearRegisterFields();">회원가입</button>
+    <button onclick="showLogin(); clearLoginFields();">로그인</button>
+    <button onclick="logoutUser()">로그아웃</button>
+    <button id="admin-user-list-button" style="display:none;" onclick="showUserList()">유저 정보</button>
+  </div>
+
+  <div class="container" id="register-container" style="display:none;">
+    <h1>회원가입</h1>
+    <div class="input-group">
+      <label for="username">아이디</label>
+      <input type="text" id="username" autocomplete="off" />
+    </div>
+    <div class="input-group">
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" autocomplete="off" />
+    </div>
+    <div class="input-group">
+      <label for="email">이메일</label>
+      <input type="email" id="email" autocomplete="off" />
+    </div>
+    <button onclick="registerUser()">회원가입</button>
+  </div>
+
+  <div class="container" id="login-container" style="display:none;">
+    <h1>로그인</h1>
+    <div class="input-group">
+      <label for="login-username">아이디</label>
+      <input type="text" id="login-username" autocomplete="off" />
+    </div>
+    <div class="input-group">
+      <label for="login-password">비밀번호</label>
+      <input type="password" id="login-password" autocomplete="off" />
+    </div>
+    <button onclick="loginUser()">로그인</button>
+  </div>
+
+  <div class="container" id="product-container" style="display:none;">
+    <h1>상품 등록</h1>
+    <div class="input-group">
+      <label for="product-name">상품명</label>
+      <input type="text" id="product-name" />
+    </div>
+    <div class="input-group">
+      <label for="product-price">가격</label>
+      <input type="number" id="product-price" />
+    </div>
+    <button onclick="addProduct()">상품 등록</button>
+
+    <h2>상품 목록</h2>
+    <div class="input-group">
+      <input type="text" id="search-input" placeholder="상품 검색" oninput="searchProducts()" />
+    </div>
+    <div id="product-list"></div>
+    <div id="no-products" style="display:none;">등록된 상품이 없습니다.</div>
+  </div>
+
+  <div class="container" id="product-detail-container" style="display:none;">
+    <h1 id="detail-product-name"></h1>
+    <p id="detail-product-price"></p>
+    <div class="comments">
+      <h3>댓글</h3>
+      <div id="detail-comments"></div>
+      <input type="text" id="detail-comment-input" placeholder="댓글을 입력하세요" />
+      <button onclick="addDetailComment()">댓글 추가</button>
+    </div>
+    <button onclick="reportProduct()" class="report-button">신고하기</button>
+    <button onclick="deleteProduct()" class="delete-button">삭제하기</button>
+    <button onclick="backToList()">← 목록으로 돌아가기</button>
+  </div>
+
+  <script>
+    let users = [];
+    let currentUsername = '';
+    let productList = [];
+    let selectedProductIndex = null;
+
+    function showRegister() {
+      hideAll();
+      clearRegisterFields();
+      document.getElementById("register-container").style.display = "block";
+    }
+
+    function showLogin() {
+      hideAll();
+      clearLoginFields();
+      document.getElementById("login-container").style.display = "block";
+    }
+
+    function logoutUser() {
+      currentUsername = '';
+      hideAll();
+    }
+
+    function hideAll() {
+      document.getElementById("register-container").style.display = "none";
+      document.getElementById("login-container").style.display = "none";
+      document.getElementById("product-container").style.display = "none";
+      document.getElementById("product-detail-container").style.display = "none";
+    }
+
+    function clearRegisterFields() {
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("email").value = "";
+    }
+
+    function clearLoginFields() {
+      document.getElementById("login-username").value = "";
+      document.getElementById("login-password").value = "";
+    }
+
+    function registerUser() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const email = document.getElementById("email").value.trim();
+
+      if (!username || !password || !email) {
+        alert("모든 정보를 입력해 주세요!");
+        return;
+      }
+
+      const exists = users.some(user => user.username === username);
+      if (exists) {
+        alert("이미 존재하는 아이디입니다.");
+        return;
+      }
+
+      users.push({ username, password, email });
+      alert(`${username}님, 회원가입이 완료되었습니다!`);
+      clearRegisterFields();
+      showLogin();
+    }
+
+    function loginUser() {
+      const username = document.getElementById("login-username").value.trim();
+      const password = document.getElementById("login-password").value.trim();
+
+      const user = users.find(u => u.username === username && u.password === password);
+      if (user) {
+        currentUsername = username;
+        alert(`${username}님, 로그인 성공!`);
+        hideAll();
+        document.getElementById("product-container").style.display = "block";
+        renderProductList();
+      } else {
+        alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+      }
+    }
+
+    function addProduct() {
+      if (!currentUsername) {
+        alert("로그인이 필요합니다!");
+        return;
+      }
+      const productName = document.getElementById("product-name").value.trim();
+      const productPrice = document.getElementById("product-price").value.trim();
+
+      if (!productName || !productPrice) {
+        alert("상품명과 가격을 입력해 주세요!");
+        return;
+      }
+
+      const newProduct = {
+        name: productName,
+        price: productPrice,
+        comments: [],
+        seller: currentUsername
+      };
+
+      productList.push(newProduct);
+      alert(`${productName} 상품이 등록되었습니다.`);
+      renderProductList();
+    }
+
+    function renderProductList() {
+      const list = document.getElementById("product-list");
+      list.innerHTML = "";
+
+      if (productList.length === 0) {
+        document.getElementById("no-products").style.display = "block";
+        return;
+      }
+
+      document.getElementById("no-products").style.display = "none";
+      productList.forEach((product, index) => {
+        const item = document.createElement("div");
+        item.className = "product-item";
+        item.innerHTML = `<strong>${product.name}</strong> - ${product.price}원 <button onclick="showProductDetail(${index})">보기</button>`;
+        list.appendChild(item);
+      });
+    }
+
+    function showProductDetail(index) {
+      selectedProductIndex = index;
+      const product = productList[index];
+
+      document.getElementById("detail-product-name").innerText = product.name;
+      document.getElementById("detail-product-price").innerText = `가격: ${product.price}원`;
+
+      const comments = document.getElementById("detail-comments");
+      comments.innerHTML = "";
+      product.comments.forEach(comment => {
+        const p = document.createElement("p");
+        p.textContent = comment;
+        comments.appendChild(p);
+      });
+
+      document.getElementById("detail-comment-input").value = "";
+
+      hideAll();
+      document.getElementById("product-detail-container").style.display = "block";
+    }
+
+    function addDetailComment() {
+      const comment = document.getElementById("detail-comment-input").value.trim();
+      if (!comment) return;
+
+      productList[selectedProductIndex].comments.push(`${currentUsername}: ${comment}`);
+      showProductDetail(selectedProductIndex);
+    }
+
+    function backToList() {
+      document.getElementById("product-detail-container").style.display = "none";
+      document.getElementById("product-container").style.display = "block";
+      renderProductList();
+    }
+
+    function searchProducts() {
+      const keyword = document.getElementById("search-input").value.toLowerCase();
+      const filtered = productList.filter(p => p.name.toLowerCase().includes(keyword));
+      const list = document.getElementById("product-list");
+      list.innerHTML = "";
+
+      if (filtered.length === 0) {
+        document.getElementById("no-products").style.display = "block";
+        return;
+      }
+      document.getElementById("no-products").style.display = "none";
+      filtered.forEach((product, index) => {
+        const item = document.createElement("div");
+        item.className = "product-item";
+        item.innerHTML = `<strong>${product.name}</strong> - ${product.price}원 <button onclick="showProductDetail(${index})">보기</button>`;
+        list.appendChild(item);
+      });
+    }
+
+    function reportProduct() {
+      if (selectedProductIndex !== null) {
+        const product = productList[selectedProductIndex];
+        alert(`'${product.name}' 상품이 신고되었습니다.`);
+      }
+    }
+
+    function deleteProduct() {
+      if (selectedProductIndex !== null && confirm("정말 삭제하시겠습니까?")) {
+        const product = productList[selectedProductIndex];
+        productList.splice(selectedProductIndex, 1);
+        alert(`'${product.name}' 상품이 삭제되었습니다.`);
+        backToList();
+        renderProductList();
+      }
+    }
+
+    function loginUser() {
+  const username = document.getElementById("login-username").value.trim();
+  const password = document.getElementById("login-password").value.trim();
+
+  const user = users.find(u => u.username === username && u.password === password);
+  if (user) {
+    currentUsername = username;
+    alert(`${username}님, 로그인 성공!`);
+    hideAll();
+    document.getElementById("product-container").style.display = "block";
+    renderProductList();
+
+    // 관리자 전용 버튼 표시
+    if (username === "admin") {
+      document.getElementById("admin-user-list-button").style.display = "inline-block";
+    }
+  } else {
+    alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+  }
+}
+
+function logoutUser() {
+  currentUsername = '';
+  hideAll();
+  document.getElementById("admin-user-list-button").style.display = "none";
+}
+
+// 관리자 전용: 유저 정보 확인
+function showUserList() {
+  if (currentUsername !== "admin") {
+    alert("접근 권한이 없습니다.");
+    return;
+  }
+
+  let info = "가입된 유저 목록:\n\n";
+  users.forEach((user, index) => {
+    info += `${index + 1}. 아이디: ${user.username}, 이메일: ${user.email}\n`;
+  });
+  alert(info);
+}
+
+// 상품 삭제 함수 수정
+function deleteProduct() {
+  if (selectedProductIndex !== null) {
+    if (currentUsername !== "admin") {
+      alert("관리자만 삭제할 수 있습니다.");
+      return;
+    }
+
+    if (confirm("정말 삭제하시겠습니까?")) {
+      const product = productList[selectedProductIndex];
+      productList.splice(selectedProductIndex, 1);
+      alert(`'${product.name}' 상품이 삭제되었습니다.`);
+      backToList();
+      renderProductList();
+    }
+  }
+}
+
+  </script>
+</body>
+</html>
