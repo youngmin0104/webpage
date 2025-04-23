@@ -25,7 +25,6 @@
     <button onclick="showRegister(); clearRegisterFields();">회원가입</button>
     <button onclick="showLogin(); clearLoginFields();">로그인</button>
     <button onclick="logoutUser()">로그아웃</button>
-    <button id="admin-user-list-button" style="display:none;" onclick="showUserList()">유저 정보</button>
   </div>
 
   <div class="container" id="register-container" style="display:none;">
@@ -92,6 +91,19 @@
     <button onclick="backToList()">← 목록으로 돌아가기</button>
   </div>
 
+  <div class="container" id="transfer-container" style="display:none;">
+    <h1>포인트 송금</h1>
+    <div class="input-group">
+      <label for="recipient">받는 사람 아이디</label>
+      <input type="text" id="recipient" />
+    </div>
+    <div class="input-group">
+      <label for="amount">금액</label>
+      <input type="number" id="amount" />
+    </div>
+    <button onclick="sendMoney()">송금하기</button>
+  </div>
+
   <script>
     let users = [];
     let currentUsername = '';
@@ -120,6 +132,7 @@
       document.getElementById("login-container").style.display = "none";
       document.getElementById("product-container").style.display = "none";
       document.getElementById("product-detail-container").style.display = "none";
+      document.getElementById("transfer-container").style.display = "none";
     }
 
     function clearRegisterFields() {
@@ -149,7 +162,7 @@
         return;
       }
 
-      users.push({ username, password, email });
+      users.push({ username, password, email, balance: 10000 });
       alert(`${username}님, 회원가입이 완료되었습니다!`);
       clearRegisterFields();
       showLogin();
@@ -165,6 +178,7 @@
         alert(`${username}님, 로그인 성공!`);
         hideAll();
         document.getElementById("product-container").style.display = "block";
+        document.getElementById("transfer-container").style.display = "block";
         renderProductList();
       } else {
         alert("아이디 또는 비밀번호가 올바르지 않습니다.");
@@ -278,6 +292,10 @@
     function deleteProduct() {
       if (selectedProductIndex !== null && confirm("정말 삭제하시겠습니까?")) {
         const product = productList[selectedProductIndex];
+        if (currentUsername !== 'admin') {
+          alert("삭제 권한이 없습니다. 관리자만 삭제할 수 있습니다.");
+          return;
+        }
         productList.splice(selectedProductIndex, 1);
         alert(`'${product.name}' 상품이 삭제되었습니다.`);
         backToList();
@@ -285,65 +303,40 @@
       }
     }
 
-    function loginUser() {
-  const username = document.getElementById("login-username").value.trim();
-  const password = document.getElementById("login-password").value.trim();
+    function sendMoney() {
+      const recipientId = document.getElementById("recipient").value.trim();
+      const amount = parseInt(document.getElementById("amount").value.trim());
 
-  const user = users.find(u => u.username === username && u.password === password);
-  if (user) {
-    currentUsername = username;
-    alert(`${username}님, 로그인 성공!`);
-    hideAll();
-    document.getElementById("product-container").style.display = "block";
-    renderProductList();
+      if (!recipientId || isNaN(amount) || amount <= 0) {
+        alert("받는 사람과 금액을 올바르게 입력해 주세요.");
+        return;
+      }
 
-    // 관리자 전용 버튼 표시
-    if (username === "admin") {
-      document.getElementById("admin-user-list-button").style.display = "inline-block";
+      if (recipientId === currentUsername) {
+        alert("자기 자신에게는 송금할 수 없습니다.");
+        return;
+      }
+
+      const sender = users.find(u => u.username === currentUsername);
+      const recipient = users.find(u => u.username === recipientId);
+
+      if (!recipient) {
+        alert("받는 사람을 찾을 수 없습니다.");
+        return;
+      }
+
+      if (sender.balance < amount) {
+        alert("잔액이 부족합니다.");
+        return;
+      }
+
+      sender.balance -= amount;
+      recipient.balance += amount;
+
+      alert(`${recipientId}님에게 ${amount}포인트를 보냈습니다.\n내 잔액: ${sender.balance}포인트`);
+      document.getElementById("recipient").value = "";
+      document.getElementById("amount").value = "";
     }
-  } else {
-    alert("아이디 또는 비밀번호가 올바르지 않습니다.");
-  }
-}
-
-function logoutUser() {
-  currentUsername = '';
-  hideAll();
-  document.getElementById("admin-user-list-button").style.display = "none";
-}
-
-// 관리자 전용: 유저 정보 확인
-function showUserList() {
-  if (currentUsername !== "admin") {
-    alert("접근 권한이 없습니다.");
-    return;
-  }
-
-  let info = "가입된 유저 목록:\n\n";
-  users.forEach((user, index) => {
-    info += `${index + 1}. 아이디: ${user.username}, 이메일: ${user.email}\n`;
-  });
-  alert(info);
-}
-
-// 상품 삭제 함수 수정
-function deleteProduct() {
-  if (selectedProductIndex !== null) {
-    if (currentUsername !== "admin") {
-      alert("관리자만 삭제할 수 있습니다.");
-      return;
-    }
-
-    if (confirm("정말 삭제하시겠습니까?")) {
-      const product = productList[selectedProductIndex];
-      productList.splice(selectedProductIndex, 1);
-      alert(`'${product.name}' 상품이 삭제되었습니다.`);
-      backToList();
-      renderProductList();
-    }
-  }
-}
-
   </script>
 </body>
 </html>
